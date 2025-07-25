@@ -1,16 +1,41 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+async function logout() {
+  "use server";
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+export default async function Home() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
       <header className="absolute inset-x-0 top-0 z-50">
-        <nav className="flex items-center justify-end p-6 lg:px-8" aria-label="Global">
-          <Link
-            href="/login" // 로그인 페이지 경로 (추후 생성)
-            className="text-sm font-semibold leading-6 text-gray-900 dark:text-white"
-          >
-            로그인 <span aria-hidden="true">&rarr;</span>
-          </Link>
+        <nav className="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
+          <div />
+          {user ? (
+            <form action={logout}>
+              <button className="text-sm font-semibold leading-6 text-gray-900 dark:text-white">
+                Logout
+              </button>
+            </form>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm font-semibold leading-6 text-gray-900 dark:text-white"
+            >
+              로그인 <span aria-hidden="true">&rarr;</span>
+            </Link>
+          )}
         </nav>
       </header>
       <main className="flex flex-1 items-center justify-center">
