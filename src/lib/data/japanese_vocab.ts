@@ -48,3 +48,28 @@ export async function getWordsForUser(page: number = 1) {
     totalPages: Math.ceil(count / PAGE_SIZE),
   };
 }
+
+export async function getWordsForQuiz(): Promise<Word[]> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return [];
+  }
+
+  const { data: words, error } = await supabase
+    .from("japanese_vocab")
+    .select("*")
+    .eq("user_id", user.id)
+    .not("meaning", "is", null); // 퀴즈를 위해 의미가 있는 단어만 가져옵니다.
+
+  if (error) {
+    console.error("Error fetching words for quiz:", error.message);
+    return [];
+  }
+
+  return words || [];
+}
