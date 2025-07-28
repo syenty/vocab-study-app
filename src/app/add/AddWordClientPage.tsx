@@ -8,9 +8,13 @@ import Link from "next/link";
 export default function AddWordClientPage({
   userEmail,
   initialWords,
+  currentPage,
+  totalPages,
 }: {
   userEmail: string;
   initialWords: Word[];
+  currentPage: number;
+  totalPages: number;
 }) {
   const [state, formAction] = useActionState(addWord, { error: null });
   const formRef = useRef<HTMLFormElement>(null);
@@ -96,24 +100,53 @@ export default function AddWordClientPage({
         <h2 className="text-2xl font-bold mb-4">등록된 단어 목록</h2>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {initialWords.map((word) => (
-              <li key={word.id} className="p-4 flex justify-between items-center">
-                <div>
-                  <p className="font-semibold text-lg text-gray-900 dark:text-white">
-                    {word.name}{" "}
-                    {word.pronunciation && (
-                      <span className="text-gray-500 dark:text-gray-400 font-normal">
-                        [{word.pronunciation}]
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-gray-600 dark:text-gray-300">{word.meaning}</p>
-                </div>
-                {/* TODO: Add edit/delete buttons here */}
-              </li>
-            ))}
+            {initialWords.length > 0 ? (
+              initialWords.map((word) => (
+                <li key={word.id} className="p-4 flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold text-lg text-gray-900 dark:text-white">
+                      {word.name}{" "}
+                      {word.pronunciation && (
+                        <span className="text-gray-500 dark:text-gray-400 font-normal">
+                          [{word.pronunciation}]
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-300">{word.meaning}</p>
+                  </div>
+                  {/* TODO: Add edit/delete buttons here */}
+                </li>
+              ))
+            ) : (
+              <li className="p-4 text-center text-gray-500">등록된 단어가 없습니다.</li>
+            )}
           </ul>
         </div>
+        {totalPages > 1 && (
+          <div className="mt-6 flex justify-between items-center">
+            <Link
+              href={`/add?page=${currentPage - 1}`}
+              className={`px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 ${
+                currentPage <= 1 ? "pointer-events-none opacity-50" : ""
+              }`}
+              aria-disabled={currentPage <= 1}
+            >
+              이전
+            </Link>
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              {currentPage} / {totalPages} 페이지
+            </span>
+            <Link
+              href={`/add?page=${currentPage + 1}`}
+              className={`px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 ${
+                currentPage >= totalPages ? "pointer-events-none opacity-50" : ""
+              }`}
+              aria-disabled={currentPage >= totalPages}
+            >
+              다음
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

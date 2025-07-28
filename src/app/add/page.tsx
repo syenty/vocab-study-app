@@ -1,11 +1,14 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import AddWordClientPage from "./AddWordClientPage";
+import { createClient } from "@/lib/supabase/server";
 import { getWordsForUser } from "@/lib/data/japanese_vocab";
+import AddWordClientPage from "./AddWordClientPage";
 
-export default async function AddWordPage() {
+export default async function AddWordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page: string }>;
+}) {
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -14,7 +17,17 @@ export default async function AddWordPage() {
     redirect("/login");
   }
 
-  const words = await getWordsForUser();
+  const { page } = await searchParams;
+  const currentPage = page ? parseInt(page) : 1;
 
-  return <AddWordClientPage userEmail={user.email || ""} initialWords={words} />;
+  const { words, totalPages } = await getWordsForUser(currentPage);
+
+  return (
+    <AddWordClientPage
+      userEmail={user.email!}
+      initialWords={words}
+      currentPage={currentPage}
+      totalPages={totalPages}
+    />
+  );
 }
