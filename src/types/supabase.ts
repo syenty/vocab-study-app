@@ -13,7 +13,7 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
-  graphql_public: {
+  public: {
     Tables: {
       [_ in never]: never
     }
@@ -21,15 +21,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
@@ -38,9 +30,44 @@ export type Database = {
       [_ in never]: never
     }
   }
-  public: {
+  study: {
     Tables: {
-      [_ in never]: never
+      japanese_vocab: {
+        Row: {
+          checked: boolean | null
+          created_dt: string
+          date: string | null
+          id: number
+          meaning: string | null
+          name: string | null
+          pronunciation: string | null
+          updated_dt: string | null
+          user_id: string | null
+        }
+        Insert: {
+          checked?: boolean | null
+          created_dt?: string
+          date?: string | null
+          id?: number
+          meaning?: string | null
+          name?: string | null
+          pronunciation?: string | null
+          updated_dt?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          checked?: boolean | null
+          created_dt?: string
+          date?: string | null
+          id?: number
+          meaning?: string | null
+          name?: string | null
+          pronunciation?: string | null
+          updated_dt?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -175,10 +202,10 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
+  public: {
     Enums: {},
   },
-  public: {
+  study: {
     Enums: {},
   },
 } as const
