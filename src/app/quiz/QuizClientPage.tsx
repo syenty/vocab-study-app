@@ -159,24 +159,23 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
             );
           })}
         </div>
-
-        {isAnswered && (
-          <div className="mt-8 animate-fade-in">
-            <div className="mb-4 h-8">
-              {isCorrect ? (
-                <p className="text-2xl font-bold text-green-500">정답입니다!</p>
-              ) : (
-                <p className="text-2xl font-bold text-red-600">틀렸습니다!</p>
-              )}
+        {/* 피드백 및 다음 문제 버튼 영역 */}
+        <div className="mt-4 h-16 flex items-center justify-center">
+          {isAnswered && (
+            <div className="animate-fade-in w-full">
+              <button
+                onClick={handleNextQuestion}
+                className={`w-full rounded-md py-3 px-4 text-xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  isCorrect
+                    ? "bg-green-700 hover:bg-green-800 focus:ring-green-600"
+                    : "bg-red-700 hover:bg-red-800 focus:ring-red-600"
+                }`}
+              >
+                다음 문제
+              </button>
             </div>
-            <button
-              onClick={handleNextQuestion}
-              className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-xl font-bold"
-            >
-              다음 문제
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
