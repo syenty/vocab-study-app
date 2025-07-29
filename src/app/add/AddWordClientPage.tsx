@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { addWord, addWords } from "@/lib/actions/japanese_vocab";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { addWord, addWords, getPaginatedWords } from "@/lib/actions/japanese_vocab";
 import type { Word } from "@/lib/data/japanese_vocab";
 import Link from "next/link";
 
@@ -23,9 +23,17 @@ export default function AddWordClientPage({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 페이지네이션 및 단어 목록 상태 관리
+  const [displayedWords, setDisplayedWords] = useState<Word[]>(initialWords);
+  const [page, setPage] = useState(currentPage);
+  const [total, setTotal] = useState(totalPages);
+  const [isPending, startTransition] = useTransition();
+
   useEffect(() => {
-    if (state.error === null) {
+    if (state.error === null && state.message) {
       formRef.current?.reset();
+      // 단어 추가 성공 시, 목록을 새로고침합니다.
+      handlePageChange(1);
     }
   }, [state]);
 
@@ -33,12 +41,28 @@ export default function AddWordClientPage({
     if (batchState.error === null && batchState.message) {
       // 성공 시 파일 입력 필드 초기화
       batchFormRef.current?.reset();
+      // 일괄 등록 성공 시, 목록을 새로고침하고 모달을 닫습니다.
+      handlePageChange(1);
+      setIsModalOpen(false);
     } else if (batchState.error) {
       // 에러 발생 시에도 파일 입력 필드 초기화
       batchFormRef.current?.reset();
     }
     setIsSubmitting(false);
   }, [batchState]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > total || isPending) return;
+
+    startTransition(async () => {
+      const result = await getPaginatedWords(newPage);
+      if (!result.error) {
+        setDisplayedWords(result.words);
+        setPage(newPage);
+        setTotal(result.totalPages);
+      }
+    });
+  };
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -195,10 +219,14 @@ export default function AddWordClientPage({
 
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">등록된 단어 목록</h2>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div
+          className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-opacity ${
+            isPending ? "opacity-50" : "opacity-100"
+          }`}
+        >
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {initialWords.length > 0 ? (
-              initialWords.map((word) => (
+            {displayedWords.length > 0 ? (
+              displayedWords.map((word) => (
                 <li key={word.id} className="p-4 flex justify-between items-center">
                   <div>
                     <p className="font-semibold text-lg text-gray-900 dark:text-white">
@@ -219,29 +247,25 @@ export default function AddWordClientPage({
             )}
           </ul>
         </div>
-        {totalPages > 1 && (
+        {total > 1 && (
           <div className="mt-6 flex justify-between items-center">
-            <Link
-              href={`/add?page=${currentPage - 1}`}
-              className={`px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 ${
-                currentPage <= 1 ? "pointer-events-none opacity-50" : ""
-              }`}
-              aria-disabled={currentPage <= 1}
+            <button
+              onClick={() => handlePageChange(page - 1)}
+              disabled={page <= 1 || isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none"
             >
               이전
-            </Link>
+            </button>
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              {currentPage} / {totalPages} 페이지
+              {page} / {total} 페이지
             </span>
-            <Link
-              href={`/add?page=${currentPage + 1}`}
-              className={`px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 ${
-                currentPage >= totalPages ? "pointer-events-none opacity-50" : ""
-              }`}
-              aria-disabled={currentPage >= totalPages}
+            <button
+              onClick={() => handlePageChange(page + 1)}
+              disabled={page >= total || isPending}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:pointer-events-none"
             >
               다음
-            </Link>
+            </button>
           </div>
         )}
       </div>
