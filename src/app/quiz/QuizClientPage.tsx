@@ -29,14 +29,17 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
   const [score, setScore] = useState(0);
 
   const generateQuestions = useCallback((words: Word[]): QuizQuestion[] => {
+    // 퀴즈에 필수적인 name과 meaning이 없는 단어를 미리 필터링합니다.
+    const validWords = words.filter((word) => word.name && word.meaning);
+
     // 1. 의미가 중복되는 단어들을 찾습니다. (meaning은 같지만 name은 다른 경우)
     const meaningToNamesMap = new Map<string, Set<string>>();
-    words.forEach((word) => {
-      if (!word.meaning) return;
-      if (!meaningToNamesMap.has(word.meaning)) {
-        meaningToNamesMap.set(word.meaning, new Set());
+    validWords.forEach((word) => {
+      // validWords 필터링을 통해 word.meaning과 word.name은 항상 string입니다.
+      if (!meaningToNamesMap.has(word.meaning!)) {
+        meaningToNamesMap.set(word.meaning!, new Set());
       }
-      meaningToNamesMap.get(word.meaning)!.add(word.name);
+      meaningToNamesMap.get(word.meaning!)!.add(word.name!);
     });
 
     const ambiguousMeanings = new Set<string>();
@@ -47,15 +50,13 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
     });
 
     // 2. '뜻 -> 단어' 퀴즈용 단어 풀을 만듭니다. (의미가 고유한 단어만)
-    const unambiguousWords = words.filter(
-      (word) => word.meaning && !ambiguousMeanings.has(word.meaning)
-    );
+    const unambiguousWords = validWords.filter((word) => !ambiguousMeanings.has(word.meaning!));
     const wordsForMeaningToWord = shuffle(unambiguousWords).slice(0, 5);
 
     // 3. '뜻 -> 단어' 퀴즈 생성
-    const allNames = [...new Set(words.map((w) => w.name))];
+    const allNames = [...new Set(validWords.map((w) => w.name!))];
     const meaningToWordQuestions = wordsForMeaningToWord.map((currentWord) => {
-      const correctAnswer = currentWord.name;
+      const correctAnswer = currentWord.name!;
       const wrongChoices = shuffle(allNames.filter((n) => n !== correctAnswer)).slice(0, 3);
       const choices = shuffle([correctAnswer, ...wrongChoices]);
       return {
@@ -68,18 +69,18 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
 
     // 4. '단어 -> 뜻' 퀴즈용 단어 풀을 만듭니다. (사용한 단어 제외)
     const usedIds = new Set(wordsForMeaningToWord.map((w) => w.id));
-    const remainingWords = words.filter((w) => !usedIds.has(w.id));
+    const remainingWords = validWords.filter((w) => !usedIds.has(w.id));
     const wordsForWordToMeaning = shuffle(remainingWords).slice(0, 5);
 
     // 5. '단어 -> 뜻' 퀴즈 생성
-    const allMeanings = [...new Set(words.map((w) => w.meaning!))];
+    const allMeanings = [...new Set(validWords.map((w) => w.meaning!))];
     const wordToMeaningQuestions = wordsForWordToMeaning.map((currentWord) => {
       const correctAnswer = currentWord.meaning!;
       const wrongChoices = shuffle(allMeanings.filter((m) => m !== correctAnswer)).slice(0, 3);
       const choices = shuffle([correctAnswer, ...wrongChoices]);
       return {
         word: currentWord,
-        question: currentWord.name,
+        question: currentWord.name!,
         choices,
         answer: correctAnswer,
       };
