@@ -124,3 +124,73 @@ export async function getPaginatedWords(page: number): Promise<{
     return { words: [], totalPages: 0, error: "단어를 불러오는 데 실패했습니다." };
   }
 }
+
+export async function deleteWord(
+  prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "User not authenticated" };
+  }
+
+  const wordId = formData.get("wordId") as string;
+  if (!wordId) {
+    return { error: "Word ID is missing." };
+  }
+
+  const { error } = await supabase
+    .from("japanese_vocab")
+    .delete()
+    .match({ id: Number(wordId), user_id: user.id });
+
+  if (error) {
+    console.error("Error deleting word:", error);
+    return { error: "단어 삭제에 실패했습니다." };
+  }
+
+  revalidatePath("/add");
+  return { error: null, message: "단어가 성공적으로 삭제되었습니다." };
+}
+
+export async function updateWord(
+  prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "User not authenticated" };
+  }
+
+  const wordId = formData.get("wordId") as string;
+  const name = formData.get("name") as string;
+  const meaning = formData.get("meaning") as string;
+  const pronunciation = formData.get("pronunciation") as string;
+
+  if (!wordId || !name || !meaning) {
+    return { error: "ID, 단어, 뜻은 필수입니다." };
+  }
+
+  const { error } = await supabase
+    .from("japanese_vocab")
+    .update({ name, meaning, pronunciation: pronunciation || null })
+    .match({ id: Number(wordId), user_id: user.id });
+
+  if (error) {
+    console.error("Error updating word:", error);
+    return { error: "단어 수정에 실패했습니다." };
+  }
+
+  revalidatePath("/add");
+  return { error: null, message: "단어가 성공적으로 수정되었습니다." };
+}
