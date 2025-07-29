@@ -1,6 +1,7 @@
 "use server";
 
 import * as XLSX from "xlsx";
+import { getWordsForUser, type Word } from "@/lib/data/japanese_vocab";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -106,5 +107,20 @@ export async function addWords(prevState: ActionResult, formData: FormData): Pro
   } catch (e) {
     console.error("Error processing Excel file:", e);
     return { error: "엑셀 파일을 처리하는 중 오류가 발생했습니다." };
+  }
+}
+
+export async function getPaginatedWords(page: number): Promise<{
+  words: Word[];
+  totalPages: number;
+  error: string | null;
+}> {
+  try {
+    // 기존 데이터 로직을 재사용합니다.
+    const { words, totalPages } = await getWordsForUser(page);
+    return { words, totalPages, error: null };
+  } catch (error) {
+    console.error("Error fetching paginated words:", error);
+    return { words: [], totalPages: 0, error: "단어를 불러오는 데 실패했습니다." };
   }
 }
