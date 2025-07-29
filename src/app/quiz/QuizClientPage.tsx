@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Word } from "@/lib/data/japanese_vocab";
 import Link from "next/link";
 
 interface QuizQuestion {
   word: Word;
+  question: string;
   choices: string[];
+  answer: string;
 }
 
 // 배열을 무작위로 섞는 헬퍼 함수
@@ -26,38 +28,78 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
 
-  const generateQuestions = (words: Word[]): QuizQuestion[] => {
-    // 퀴즈에 사용할 모든 의미 목록 (중복 제거)
-    const allMeanings = [...new Set(words.map((w) => w.meaning!))];
-    const shuffledWords = shuffle(words).slice(0, 10);
+  const generateQuestions = useCallback((words: Word[]): QuizQuestion[] => {
+    // 1. 의미가 중복되는 단어들을 찾습니다. (meaning은 같지만 name은 다른 경우)
+    const meaningToNamesMap = new Map<string, Set<string>>();
+    words.forEach((word) => {
+      if (!word.meaning) return;
+      if (!meaningToNamesMap.has(word.meaning)) {
+        meaningToNamesMap.set(word.meaning, new Set());
+      }
+      meaningToNamesMap.get(word.meaning)!.add(word.name);
+    });
 
-    return shuffledWords.map((currentWord) => {
-      const correctAnswer = currentWord.meaning!;
+    const ambiguousMeanings = new Set<string>();
+    meaningToNamesMap.forEach((names, meaning) => {
+      if (names.size > 1) {
+        ambiguousMeanings.add(meaning);
+      }
+    });
 
-      // 정답을 제외한 나머지 의미들 중에서 오답 선택지 3개를 무작위로 추출
-      const wrongChoices = shuffle(allMeanings.filter((m) => m !== correctAnswer)).slice(0, 3);
+    // 2. '뜻 -> 단어' 퀴즈용 단어 풀을 만듭니다. (의미가 고유한 단어만)
+    const unambiguousWords = words.filter(
+      (word) => word.meaning && !ambiguousMeanings.has(word.meaning)
+    );
+    const wordsForMeaningToWord = shuffle(unambiguousWords).slice(0, 5);
 
-      // 정답 1개 + 오답 3개를 합쳐서 다시 섞음
+    // 3. '뜻 -> 단어' 퀴즈 생성
+    const allNames = [...new Set(words.map((w) => w.name))];
+    const meaningToWordQuestions = wordsForMeaningToWord.map((currentWord) => {
+      const correctAnswer = currentWord.name;
+      const wrongChoices = shuffle(allNames.filter((n) => n !== correctAnswer)).slice(0, 3);
       const choices = shuffle([correctAnswer, ...wrongChoices]);
-
       return {
         word: currentWord,
+        question: currentWord.meaning!,
         choices,
+        answer: correctAnswer,
       };
     });
-  };
+
+    // 4. '단어 -> 뜻' 퀴즈용 단어 풀을 만듭니다. (사용한 단어 제외)
+    const usedIds = new Set(wordsForMeaningToWord.map((w) => w.id));
+    const remainingWords = words.filter((w) => !usedIds.has(w.id));
+    const wordsForWordToMeaning = shuffle(remainingWords).slice(0, 5);
+
+    // 5. '단어 -> 뜻' 퀴즈 생성
+    const allMeanings = [...new Set(words.map((w) => w.meaning!))];
+    const wordToMeaningQuestions = wordsForWordToMeaning.map((currentWord) => {
+      const correctAnswer = currentWord.meaning!;
+      const wrongChoices = shuffle(allMeanings.filter((m) => m !== correctAnswer)).slice(0, 3);
+      const choices = shuffle([correctAnswer, ...wrongChoices]);
+      return {
+        word: currentWord,
+        question: currentWord.name,
+        choices,
+        answer: correctAnswer,
+      };
+    });
+
+    // 6. 두 유형의 문제를 합치고 다시 섞음
+    return shuffle([...wordToMeaningQuestions, ...meaningToWordQuestions]);
+  }, []);
 
   // 컴포넌트가 마운트될 때 퀴즈 문제 생성
   useEffect(() => {
     setQuestions(generateQuestions(initialWords));
-  }, [initialWords]);
+  }, [initialWords, generateQuestions]);
 
   const handleAnswer = (answer: string) => {
     if (isAnswered) return;
 
     setSelectedAnswer(answer);
     setIsAnswered(true);
-    if (answer === questions[currentQuestionIndex].word.meaning) {
+    if (answer === questions[currentQuestionIndex].answer) {
       setScore((prev) => prev + 1);
     }
   };
@@ -107,7 +149,7 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-  const isCorrect = selectedAnswer === currentQuestion.word.meaning;
+  const isCorrect = selectedAnswer === currentQuestion.answer;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
@@ -124,22 +166,25 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
           <p className="text-lg text-gray-600 dark:text-gray-400">
             문제 {currentQuestionIndex + 1} / {questions.length}
           </p>
-          <div className="mt-2 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-            <p className="text-5xl font-bold text-gray-900 dark:text-white">
-              {currentQuestion.word.name}
-            </p>
-            {currentQuestion.word.pronunciation && (
-              <p className="text-2xl text-gray-500 dark:text-gray-400 mt-2">
-                [{currentQuestion.word.pronunciation}]
+          <div className="mt-2 flex min-h-[160px] flex-col items-center justify-center rounded-lg bg-white p-8 shadow-md dark:bg-gray-800">
+            <div>
+              <p className="text-5xl font-bold text-gray-900 dark:text-white">
+                {currentQuestion.question}
               </p>
-            )}
+              {currentQuestion.question === currentQuestion.word.name &&
+                currentQuestion.word.pronunciation && (
+                  <p className="mt-2 text-2xl text-gray-500 dark:text-gray-400">
+                    [{currentQuestion.word.pronunciation}]
+                  </p>
+                )}
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {currentQuestion.choices.map((choice, index) => {
             const isSelected = selectedAnswer === choice;
-            const isCorrectChoice = choice === currentQuestion.word.meaning;
+            const isCorrectChoice = choice === currentQuestion.answer;
             let buttonClass =
               "bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-white";
             if (isAnswered) {
@@ -152,7 +197,7 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
                 key={index}
                 onClick={() => handleAnswer(choice)}
                 disabled={isAnswered}
-                className={`p-4 rounded-lg shadow-md text-lg font-semibold transition-colors duration-200 disabled:cursor-not-allowed ${buttonClass}`}
+                className={`flex min-h-[92px] items-center justify-center rounded-lg p-4 text-center text-lg font-semibold shadow-md transition-colors duration-200 disabled:cursor-not-allowed ${buttonClass}`}
               >
                 {choice}
               </button>
