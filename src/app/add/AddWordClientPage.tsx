@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
-import { addWord } from "@/lib/actions/japanese_vocab";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { addWord, addWords } from "@/lib/actions/japanese_vocab";
 import type { Word } from "@/lib/data/japanese_vocab";
 import Link from "next/link";
 
@@ -17,13 +17,23 @@ export default function AddWordClientPage({
   totalPages: number;
 }) {
   const [state, formAction] = useActionState(addWord, { error: null });
+  const [batchState, batchFormAction] = useActionState(addWords, { error: null });
   const formRef = useRef<HTMLFormElement>(null);
+  const batchFormRef = useRef<HTMLFormElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (state.error === null) {
       formRef.current?.reset();
     }
   }, [state]);
+
+  useEffect(() => {
+    if (batchState.error === null) {
+      batchFormRef.current?.reset();
+    }
+    setIsSubmitting(false);
+  }, [batchState]);
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -34,10 +44,10 @@ export default function AddWordClientPage({
         <span className="text-sm text-gray-500">{userEmail}</span>
       </div>
 
-      <h1 className="text-3xl font-bold text-center mb-2">단어 등록</h1>
-      <p className="text-center text-gray-500 mb-8">새로운 단어를 추가하고 목록에서 확인하세요.</p>
+      <h1 className="text-3xl font-bold text-center mb-8">단어 등록</h1>
 
       <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md mb-8">
+        <h2 className="text-2xl font-bold mb-4">개별 단어 등록</h2>
         <form ref={formRef} action={formAction} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -93,6 +103,50 @@ export default function AddWordClientPage({
           </button>
           {state.error && <p className="text-red-500 text-sm mt-2">{state.error}</p>}
           {state.message && <p className="text-green-500 text-sm mt-2">{state.message}</p>}
+        </form>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md mb-8">
+        <h2 className="text-2xl font-bold mb-4">엑셀로 일괄 등록</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          엑셀 파일을 사용하여 여러 단어를 한 번에 등록할 수 있습니다.
+          <br />
+          양식: A열에 단어(name), B열에 뜻(meaning), C열에 발음(pronunciation)을 순서대로
+          입력해주세요. (헤더 행 없음)
+        </p>
+        <form
+          ref={batchFormRef}
+          action={batchFormAction}
+          onSubmit={() => setIsSubmitting(true)}
+          className="space-y-4"
+        >
+          <div>
+            <label
+              htmlFor="file"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              엑셀 파일
+            </label>
+            <input
+              type="file"
+              id="file"
+              name="file"
+              required
+              accept=".xlsx, .xls, .csv"
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-gray-700 dark:file:text-gray-200 dark:hover:file:bg-gray-600"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "등록 중..." : "일괄 등록하기"}
+          </button>
+          {batchState.error && <p className="text-red-500 text-sm mt-2">{batchState.error}</p>}
+          {batchState.message && (
+            <p className="text-green-500 text-sm mt-2">{batchState.message}</p>
+          )}
         </form>
       </div>
 
