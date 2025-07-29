@@ -68,7 +68,9 @@ export async function addWords(prevState: ActionResult, formData: FormData): Pro
     const workbook = XLSX.read(buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
+    const data = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, {
+      header: 1,
+    });
 
     if (data.length === 0) {
       return { error: "엑셀 파일에 데이터가 없습니다." };
@@ -76,9 +78,9 @@ export async function addWords(prevState: ActionResult, formData: FormData): Pro
 
     const wordsToInsert = data
       .map((row) => ({
-        name: row[0],
-        meaning: row[1],
-        pronunciation: row[2] || null,
+        name: row[0] ? String(row[0]) : null,
+        meaning: row[1] ? String(row[1]) : null,
+        pronunciation: row[2] ? String(row[2]) : null,
         user_id: user.id,
       }))
       .filter((word) => word.name && word.meaning);
