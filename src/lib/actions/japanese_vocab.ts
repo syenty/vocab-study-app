@@ -110,14 +110,17 @@ export async function addWords(prevState: ActionResult, formData: FormData): Pro
   }
 }
 
-export async function getPaginatedWords(page: number): Promise<{
+export async function getPaginatedWords(
+  page: number,
+  query: string = ""
+): Promise<{
   words: Word[];
   totalPages: number;
   error: string | null;
 }> {
   try {
     // 기존 데이터 로직을 재사용합니다.
-    const { words, totalPages } = await getWordsForUser(page);
+    const { words, totalPages } = await getWordsForUser(page, query);
     return { words, totalPages, error: null };
   } catch (error) {
     console.error("Error fetching paginated words:", error);

@@ -6,7 +6,7 @@ import AddWordClientPage from "./AddWordClientPage";
 export default async function AddWordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page: string }>;
+  searchParams: Promise<{ page: string; query: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -17,7 +17,7 @@ export default async function AddWordPage({
     redirect("/login");
   }
 
-  const { page } = await searchParams;
+  const { page, query } = await searchParams;
   const currentPage = page ? parseInt(page) : 1;
 
   const { words, totalPages } = await getWordsForUser(currentPage);
@@ -28,6 +28,7 @@ export default async function AddWordPage({
       initialWords={words}
       currentPage={currentPage}
       totalPages={totalPages}
+      initialQuery={query}
     />
   );
 }
