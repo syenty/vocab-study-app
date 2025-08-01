@@ -15,12 +15,14 @@ export default function AddWordClientPage({
   currentPage,
   totalPages,
   initialQuery,
+  initialSearchField,
 }: {
   userEmail: string;
   initialWords: Word[];
   currentPage: number;
   totalPages: number;
   initialQuery: string;
+  initialSearchField: string;
 }) {
   const [batchState, batchFormAction] = useActionState(addWords, { error: null });
   const [deleteState, deleteAction] = useActionState(deleteWord, { error: null, message: null });
@@ -34,12 +36,18 @@ export default function AddWordClientPage({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [searchField, setSearchField] = useState(initialSearchField);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!searchQuery.trim()) {
+      alert("검색어를 입력해주세요.");
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", "1");
     params.set("query", searchQuery);
+    params.set("field", searchField);
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -107,18 +115,28 @@ export default function AddWordClientPage({
         </button>
       </div>
 
-      <div className="mb-8">
+      <div className="mb-8 max-w-xl mx-auto">
         <form onSubmit={handleSearch} className="flex gap-2">
+          <select
+            value={searchField}
+            onChange={(e) => setSearchField(e.target.value)}
+            className="flex-shrink-0 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-700"
+          >
+            <option value="name">단어</option>
+            <option value="meaning">의미</option>
+            <option value="pronunciation">발음</option>
+          </select>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="단어, 뜻, 발음으로 검색..."
-            className="flex-grow block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-700"
+            placeholder="검색어 입력..."
+            className="flex-grow min-w-0 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 dark:bg-gray-700"
           />
           <button
             type="submit"
-            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+            className="flex-shrink-0 bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!searchQuery.trim()}
           >
             검색
           </button>

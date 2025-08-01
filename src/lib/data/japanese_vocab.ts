@@ -7,7 +7,11 @@ export type Word = Database["study"]["Tables"]["japanese_vocab"]["Row"];
 
 const PAGE_SIZE = 5;
 
-export async function getWordsForUser(page: number = 1, query: string = "") {
+export async function getWordsForUser(
+  page: number = 1,
+  query: string = "",
+  field: string = "name"
+) {
   const supabase = await createClient();
 
   const {
@@ -30,9 +34,10 @@ export async function getWordsForUser(page: number = 1, query: string = "") {
 
   if (query) {
     const searchQuery = `%${query}%`;
-    const orFilter = `name.ilike.${searchQuery},meaning.ilike.${searchQuery},pronunciation.ilike.${searchQuery}`;
-    wordsQuery = wordsQuery.or(orFilter);
-    countQuery = countQuery.or(orFilter);
+    if (["name", "meaning", "pronunciation"].includes(field)) {
+      wordsQuery = wordsQuery.ilike(field, searchQuery);
+      countQuery = countQuery.ilike(field, searchQuery);
+    }
   }
 
   // 페이지네이션된 데이터와 전체 개수를 병렬로 가져옵니다.
