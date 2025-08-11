@@ -7,7 +7,11 @@ export type Word = Database["study"]["Tables"]["japanese_vocab"]["Row"];
 
 const PAGE_SIZE = 5;
 
-export async function getWordsForUser(page: number = 1) {
+export async function getWordsForUser(
+  page: number = 1,
+  query: string = "",
+  field: string = "name"
+) {
   const supabase = await createClient();
 
   const {
@@ -21,18 +25,25 @@ export async function getWordsForUser(page: number = 1) {
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
+  let wordsQuery = supabase.from("japanese_vocab").select("*").eq("user_id", user.id);
+
+  let countQuery = supabase
+    .from("japanese_vocab")
+    .select("count", { count: "exact", head: true })
+    .eq("user_id", user.id);
+
+  if (query) {
+    const searchQuery = `%${query}%`;
+    if (["name", "meaning", "pronunciation"].includes(field)) {
+      wordsQuery = wordsQuery.ilike(field, searchQuery);
+      countQuery = countQuery.ilike(field, searchQuery);
+    }
+  }
+
   // 페이지네이션된 데이터와 전체 개수를 병렬로 가져옵니다.
   const [wordsResponse, countResponse] = await Promise.all([
-    supabase
-      .from("japanese_vocab")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_dt", { ascending: false })
-      .range(from, to),
-    supabase
-      .from("japanese_vocab")
-      .select("count", { count: "exact", head: true })
-      .eq("user_id", user.id),
+    wordsQuery.order("created_dt", { ascending: false }).range(from, to),
+    countQuery,
   ]);
 
   if (wordsResponse.error) {
