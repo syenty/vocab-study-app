@@ -169,15 +169,44 @@ export default function QuizClientPage({ initialWords }: { initialWords: Word[] 
           </p>
           <div className="mt-2 flex min-h-[160px] flex-col items-center justify-center rounded-lg bg-white p-8 shadow-md dark:bg-gray-800">
             <div>
-              <p className="text-5xl font-bold text-gray-900 dark:text-white">
+              <p className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
                 {currentQuestion.question}
               </p>
-              {currentQuestion.question === currentQuestion.word.name &&
-                currentQuestion.word.pronunciation && (
-                  <p className="mt-2 text-2xl text-gray-500 dark:text-gray-400">
-                    [{currentQuestion.word.pronunciation}]
-                  </p>
-                )}
+              {(() => {
+                const isWordToMeaning = currentQuestion.question === currentQuestion.word.name;
+                const showPronunciation =
+                  (isWordToMeaning || isAnswered) && currentQuestion.word.pronunciation;
+
+                if (isWordToMeaning) {
+                  // '단어 -> 뜻' 문제일 경우, 발음을 바로 보여줍니다.
+                  return (
+                    <div className="mt-2 flex min-h-[40px] items-center justify-center">
+                      {showPronunciation && (
+                        <p className="text-2xl text-gray-500 dark:text-gray-400">
+                          [{currentQuestion.word.pronunciation}]
+                        </p>
+                      )}
+                    </div>
+                  );
+                } else if (isAnswered) {
+                  // '뜻 -> 단어' 문제이고 답변이 완료된 경우, 발음만 보여줍니다. (레이아웃 시프트 방지)
+                  return (
+                    <div
+                      className={`mt-2 flex min-h-[40px] flex-col justify-center text-center transition-opacity duration-300 ${
+                        isAnswered ? "opacity-100" : "opacity-0"
+                      }`}
+                    >
+                      {showPronunciation && (
+                        <p className="text-2xl text-gray-500 dark:text-gray-400">
+                          [{currentQuestion.word.pronunciation}]
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                // '뜻 -> 단어' 문제에서 답변 전, 레이아웃 유지를 위한 빈 공간
+                return <div className="mt-2 min-h-[40px]"></div>;
+              })()}
             </div>
           </div>
         </div>
