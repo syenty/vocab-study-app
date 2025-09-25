@@ -42,7 +42,10 @@ export async function getWordsForUser(
 
   // 페이지네이션된 데이터와 전체 개수를 병렬로 가져옵니다.
   const [wordsResponse, countResponse] = await Promise.all([
-    wordsQuery.order("created_dt", { ascending: false }).range(from, to),
+    wordsQuery
+      .order("created_dt", { ascending: false })
+      .order("id", { ascending: true }) // 고유 ID를 두 번째 정렬 기준으로 추가하여 순서 일관성 보장
+      .range(from, to),
     countQuery,
   ]);
 
